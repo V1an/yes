@@ -41,7 +41,7 @@ export function setupProxyRoutes(app: Express) {
       // Rewrite ALL asset URLs to proxy through our server - including external ones
       $("script[src]").each((i, el) => {
         const src = $(el).attr("src");
-        if (src && !src.startsWith("/assets")) {
+        if (src && !src.startsWith("/pedantix-assets")) {
           if (src.startsWith("//")) {
             // Protocol-relative URL
             $(el).attr("src", `/external-proxy/https:${src}`);
@@ -50,14 +50,14 @@ export function setupProxyRoutes(app: Express) {
             $(el).attr("src", `/external-proxy/${src}`);
           } else {
             // Relative URL
-            $(el).attr("src", `/assets${src}`);
+            $(el).attr("src", `/pedantix-assets${src}`);
           }
         }
       });
 
       $("link[href]").each((i, el) => {
         const href = $(el).attr("href");
-        if (href && !href.startsWith("/assets") && !href.startsWith("/external-proxy")) {
+        if (href && !href.startsWith("/pedantix-assets") && !href.startsWith("/external-proxy")) {
           if (href.startsWith("//")) {
             // Protocol-relative URL
             $(el).attr("href", `/external-proxy/https:${href}`);
@@ -66,14 +66,14 @@ export function setupProxyRoutes(app: Express) {
             $(el).attr("href", `/external-proxy/${href}`);
           } else {
             // Relative URL
-            $(el).attr("href", `/assets${href}`);
+            $(el).attr("href", `/pedantix-assets${href}`);
           }
         }
       });
 
       $("img[src]").each((i, el) => {
         const src = $(el).attr("src");
-        if (src && !src.startsWith("/assets") && !src.startsWith("/external-proxy")) {
+        if (src && !src.startsWith("/pedantix-assets") && !src.startsWith("/external-proxy")) {
           if (src.startsWith("//")) {
             // Protocol-relative URL
             $(el).attr("src", `/external-proxy/https:${src}`);
@@ -82,7 +82,7 @@ export function setupProxyRoutes(app: Express) {
             $(el).attr("src", `/external-proxy/${src}`);
           } else {
             // Relative URL
-            $(el).attr("src", `/assets${src}`);
+            $(el).attr("src", `/pedantix-assets${src}`);
           }
         }
       });
@@ -93,8 +93,8 @@ export function setupProxyRoutes(app: Express) {
         if (content) {
           // Replace CSS url() references
           content = content.replace(/url\(['"]?(\/[^'")\s]+)['"]?\)/g, (match, url) => {
-            if (!url.startsWith('/assets') && !url.startsWith('http')) {
-              return match.replace(url, `/assets${url}`);
+            if (!url.startsWith('/pedantix-assets') && !url.startsWith('http')) {
+              return match.replace(url, `/pedantix-assets${url}`);
             }
             return match;
           });
@@ -107,8 +107,8 @@ export function setupProxyRoutes(app: Express) {
         let style = $(el).attr("style");
         if (style) {
           style = style.replace(/url\(['"]?(\/[^'")\s]+)['"]?\)/g, (match, url) => {
-            if (!url.startsWith('/assets') && !url.startsWith('http')) {
-              return match.replace(url, `/assets${url}`);
+            if (!url.startsWith('/pedantix-assets') && !url.startsWith('http')) {
+              return match.replace(url, `/pedantix-assets${url}`);
             }
             return match;
           });
@@ -143,7 +143,7 @@ export function setupProxyRoutes(app: Express) {
               let newUrl = url;
               
               // Redirect ALL relative URLs through proxy (except assets)
-              if (url.startsWith('/') && !url.startsWith('/api-proxy') && !url.startsWith('/assets') && !url.startsWith('/vite')) {
+              if (url.startsWith('/') && !url.startsWith('/api-proxy') && !url.startsWith('/pedantix-assets') && !url.startsWith('/vite')) {
                 newUrl = '/api-proxy' + url;
                 console.log('Redirecting fetch to proxy:', newUrl);
               }
@@ -169,7 +169,7 @@ export function setupProxyRoutes(app: Express) {
               let newUrl = url;
               
               // Redirect ALL relative URLs through proxy (except assets)
-              if (url.startsWith('/') && !url.startsWith('/api-proxy') && !url.startsWith('/assets') && !url.startsWith('/vite')) {
+              if (url.startsWith('/') && !url.startsWith('/api-proxy') && !url.startsWith('/pedantix-assets') && !url.startsWith('/vite')) {
                 newUrl = '/api-proxy' + url;
                 console.log('Redirecting XHR to proxy:', newUrl);
               }
@@ -264,9 +264,9 @@ export function setupProxyRoutes(app: Express) {
   });
 
   // Proxy assets from the original site
-  app.get("/assets/*", async (req: Request, res: Response) => {
+  app.get("/pedantix-assets/*", async (req: Request, res: Response) => {
     try {
-      const assetPath = req.path.replace("/assets", "");
+      const assetPath = req.path.replace("/pedantix-assets", "");
       const assetUrl = `https://pedantix.certitudes.org${assetPath}`;
       
       console.log(`Proxying asset: ${assetUrl}`);
@@ -315,7 +315,7 @@ export function setupProxyRoutes(app: Express) {
       response.data.pipe(res);
     } catch (error: any) {
       console.error("Error proxying asset:", {
-        url: `https://pedantix.certitudes.org${req.path.replace("/assets", "")}`,
+        url: `https://pedantix.certitudes.org${req.path.replace("/pedantix-assets", "")}`,
         error: error.message,
         status: error.response?.status
       });
@@ -537,9 +537,9 @@ export function setupProxyRoutes(app: Express) {
   });
 
   // Proxy for static assets (CSS, JS, images)
-  app.get("/assets/*", async (req: Request, res: Response) => {
+  app.get("/pedantix-assets/*", async (req: Request, res: Response) => {
     try {
-      const assetPath = req.path.replace("/assets", "");
+      const assetPath = req.path.replace("/pedantix-assets", "");
       const assetUrl = `https://pedantix.certitudes.org${assetPath}`;
       
       const response = await axios.get(assetUrl, {
