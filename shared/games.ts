@@ -6,6 +6,11 @@ export interface GameConfig {
   domain: string;
   emoji: string;
   description: string;
+  // Mirrors the game's own localStorage key prefix (its `o.storePrefix`):
+  // pedantix uses prefix "p" -> "p/", cemantix uses no prefix -> "".
+  // We use it to pre-seed the "readRules" flag so the rules dialog doesn't
+  // auto-open with a broken fetch on first load.
+  storePrefix: string;
 }
 
 export const GAMES: Record<GameId, GameConfig> = {
@@ -15,6 +20,7 @@ export const GAMES: Record<GameId, GameConfig> = {
     domain: "pedantix.certitudes.org",
     emoji: "📰",
     description: "Devinez l'article Wikipédia mot par mot",
+    storePrefix: "p/",
   },
   cemantix: {
     id: "cemantix",
@@ -22,6 +28,7 @@ export const GAMES: Record<GameId, GameConfig> = {
     domain: "cemantix.certitudes.org",
     emoji: "🧠",
     description: "Devinez le mot mystère par proximité sémantique",
+    storePrefix: "",
   },
 };
 

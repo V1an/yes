@@ -18,7 +18,7 @@ export function setupProxyRoutes(app: Express) {
   app.get("/proxy-direct/:game", async (req: Request, res: Response) => {
     const game = requireGame(req, res);
     if (!game) return;
-    const { name, domain } = GAMES[game];
+    const { name, domain, storePrefix } = GAMES[game];
 
     try {
       console.log(`Serving direct proxy content for ${name}...`);
@@ -136,6 +136,15 @@ export function setupProxyRoutes(app: Express) {
           const API_PREFIX = ${JSON.stringify(apiPrefix)};
           const ASSET_PREFIX = ${JSON.stringify(assetPrefix)};
           console.log('${name} Proxy: Initializing API interception...');
+
+          // The game auto-opens its rules dialog on first visit via
+          // fetch(origin + "/html/<game>-rules.html"). Pre-seed the
+          // "readRules" flag so that popup never auto-opens (the user can
+          // still open it from the info button). Runs before the game's
+          // window-load init, so the flag is already set when it checks.
+          try {
+            window.localStorage.setItem(${JSON.stringify(storePrefix)} + 'readRules', 'true');
+          } catch (e) {}
 
           const originalFetch = window.fetch;
           window.fetch = function(url, options = {}) {
@@ -430,6 +439,53 @@ export function setupProxyRoutes(app: Express) {
         status: error.response?.status
       });
       res.status(404).send("External asset not found");
+    }
+  });
+
+  // Proxy the game's dialog HTML (rules, faq, theme, history, cloud).
+  // The game fetches these from `${location.origin}/html/...` because its
+  // base URL resolves to our origin, so we serve /html/* from the shared
+  // static host. Without this the rules dialog auto-opens with an error.
+  app.get("/html/*", async (req: Request, res: Response) => {
+    try {
+      const htmlPath = req.path.replace(/^\/html\//, "");
+      const targetUrl = `https://static.certitudes.org/html/${htmlPath}`;
+
+      console.log(`Proxying dialog html: ${targetUrl}`);
+
+      const response = await axios.get(targetUrl, {
+        responseType: "stream",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "*/*",
+          "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        },
+        timeout: 15000,
+        validateStatus: () => true,
+      });
+
+      const headersToForward = ['content-type', 'content-length', 'cache-control', 'last-modified', 'etag'];
+      headersToForward.forEach(header => {
+        if (response.headers[header]) {
+          res.setHeader(header, response.headers[header]);
+        }
+      });
+
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      if (!response.headers['content-type'] && htmlPath.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      }
+
+      res.status(response.status);
+      response.data.pipe(res);
+    } catch (error: any) {
+      console.error("Error proxying dialog html:", {
+        url: req.path,
+        error: error.message,
+        status: error.response?.status
+      });
+      res.status(404).send("Not found");
     }
   });
 }
